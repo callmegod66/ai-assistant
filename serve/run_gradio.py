@@ -1,12 +1,10 @@
 # 导入必要的库
 
+import os  # 用于操作系统相关的操作，例如读取环境变量
 import sys
-import os                # 用于操作系统相关的操作，例如读取环境变量
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-import IPython.display   # 用于在 IPython 环境中显示数据，例如图片
-import io                # 用于处理流式数据（例如文件流）
 import gradio as gr
 from dotenv import load_dotenv, find_dotenv
 from llm.call_llm import get_completion
@@ -14,6 +12,15 @@ from database.create_db import create_db_info
 from qa_chain.Chat_QA_chain_self import Chat_QA_chain_self
 from qa_chain.QA_chain_self import QA_chain_self
 import re
+
+import tracemalloc
+
+# 开启tracemalloc
+tracemalloc.start()
+
+# TODO 2024/10/21  开始trace
+#  卸载uvloop
+
 # 导入 dotenv 库的函数
 # dotenv 允许您从 .env 文件中读取环境变量
 # 这在开发时特别有用，可以避免将敏感信息（如API密钥）硬编码到代码中
