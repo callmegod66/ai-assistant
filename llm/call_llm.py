@@ -29,6 +29,7 @@ from urllib.parse import urlencode
 from wsgiref.handlers import format_date_time
 import zhipuai
 from langchain.utils import get_from_dict_or_env
+from openai import OpenAI
 
 import websocket  # 使用websocket_client
 
@@ -52,6 +53,8 @@ def get_completion(prompt :str, model :str, temperature=0.1,api_key=None, secret
         return get_completion_spark(prompt, model, temperature, api_key, appid, api_secret, max_tokens)
     elif model in ["chatglm_pro", "chatglm_std", "chatglm_lite"]:
         return get_completion_glm(prompt, model, temperature, api_key, max_tokens)
+    elif model in ['qwen-plus']:
+        return get_completion_qwen(prompt, model, temperature, api_key, max_tokens)
     else:
         return "不正确的模型"
     
@@ -142,6 +145,25 @@ def get_completion_glm(prompt : str, model : str, temperature : float, api_key:s
         max_tokens=max_tokens
         )
     return response["data"]["choices"][0]["content"].strip('"').strip(" ")
+
+
+def get_completion_qwen(prompt : str, model : str, temperature : float, api_key:str, max_tokens : int):
+    # 获取GLM回答
+    if api_key == None:
+        api_key = parse_llm_api_key("qwen")
+
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",  # 填写DashScope服务的base_url
+    )
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[
+            {'role': 'system', 'content': 'You are a helpful assistant.'},
+            {'role': 'user', 'content': prompt}],
+    )
+    response = json.loads(completion.model_dump_json())
+    return response.get("choices")[0].get("message").get("content")
 
 # def getText(role, content, text = []):
 #     # role 是指定角色，content 是 prompt 内容
@@ -305,14 +327,16 @@ def parse_llm_api_key(model:str, env_file:dict()=None):
     if env_file == None:
         _ = load_dotenv(find_dotenv())
         env_file = os.environ
-    if model == "openai":
-        return env_file["OPENAI_API_KEY"]
-    elif model == "wenxin":
-        return env_file["wenxin_api_key"], env_file["wenxin_secret_key"]
-    elif model == "spark":
-        return env_file["spark_api_key"], env_file["spark_appid"], env_file["spark_api_secret"]
-    elif model == "zhipuai":
-        return get_from_dict_or_env(env_file, "zhipuai_api_key", "ZHIPUAI_API_KEY")
+    if model == "qwen":
+        return env_file["QWEN_API_KEY"]
+    # if model == "openai":
+    #     return env_file["OPENAI_API_KEY"]
+    # elif model == "wenxin":
+    #     return env_file["wenxin_api_key"], env_file["wenxin_secret_key"]
+    # elif model == "spark":
+    #     return env_file["spark_api_key"], env_file["spark_appid"], env_file["spark_api_secret"]
+    # elif model == "zhipuai":
+    #     return get_from_dict_or_env(env_file, "zhipuai_api_key", "ZHIPUAI_API_KEY")
         # return env_file["ZHIPUAI_API_KEY"]
     else:
         raise ValueError(f"model{model} not support!!!")
